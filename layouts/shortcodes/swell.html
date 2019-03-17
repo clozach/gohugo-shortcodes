@@ -1,0 +1,53 @@
+<!--
+     Usage: {\{< swell "some text" >}\}
+     Result: A clean set of nested spans that make the text grow then shrink.
+
+     Custom handling is given for odd-length and even-length strings in order to ensure that the first and last characters are always the "normal" size, i.e., the same size as the surrounding text.
+
+     Caveat Coder: It was really hard to get this code to be both formatted for readability AND to avoid whitespace leaks. All changes you might make require careful testing to make sure nothing's failing. As an example gotcha, the comments with "☝" cause whitespace leaks when placed above, rather than below, their associated code! (Yes, technically I could have replaced them all with shortcode comments, but I find those blend too easily into the actual code, so I use them only sparingly.)
+
+     Testing: Copy the text below into a Hugo template. Add in extra {'s to make the shortcodes work.
+
+     <div>012{< swell "123456789" >}}012</div>
+     <div>901{< swell "12345678" >}}901</div>
+
+     <div>jkl{< swell "abcdefghi" >}}jkl</div>
+     <div>ijk{< swell "abcdefgh" >}}ijk</div>
+
+     If all goes well, there should be no spaces within the divs.
+-->
+{{- /* Values */ -}}
+{{- $stringToWriggle := .Get 0 -}}
+{{- $chars := split $stringToWriggle "" -}}
+{{- $count := countrunes $stringToWriggle -}}
+{{- $isEven := modBool $count 2 -}}
+{{- $halfLength := (div $count 2) -}}
+{{- $scratch := .Scratch -}}
+
+<!-- Loop over every character -->
+{{- range $elem_index, $elem_val := $chars -}}
+
+    <!-- Leave beginning and end marks at "normal" size -->
+    {{- if (or (eq $elem_index 0) (eq $elem_index $count)) -}}
+        {{- $elem_val -}}
+
+    <!-- For even-length strings, the 2nd central character _doesn't_ grow… -->
+    {{- else if (and $isEven (eq $elem_index $halfLength)) -}}
+        {{- $elem_val -}}
+
+    <!-- Left-half text -->
+    {{- else if (le $elem_index $halfLength) -}}
+        <span style="font-size:larger;">{{- $elem_val -}}
+
+        <!-- Save the matching </span> for the end -->
+        {{- $scratch.Add "closingSpans" "</span>" -}}
+
+    <!-- Right-half text -->
+    {{- else -}}
+        <span style="font-size:smaller;">{{- $elem_val -}}
+
+        <!-- Save the matching </span> for the end -->
+        {{- $scratch.Add "closingSpans" "</span>" -}}
+    {{- end -}}
+{{- end -}}
+{{- $scratch.Get "closingSpans" | safeHTML -}}
